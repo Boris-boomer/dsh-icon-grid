@@ -7,6 +7,14 @@ import { readNamespace } from './lib/settings.mjs'
 
 export const name = 'dsh-icon-grid'
 
+/**
+ * 静态依赖声明。
+ * 本插件在 apply 里通过 ctx.inject(['settings', 'command'], ...) 做运行时注入，
+ * 不直接访问 ctx.settings / ctx.command，所以静态依赖为空数组。
+ * 保留这个导出是为了满足 { name, inject, apply } 的插件形状检查。
+ */
+export const inject = []
+
 export { Config, normalizeConfig, DEFAULT_CONFIG, SETTINGS_NS }
 export { createUiState } from './lib/ui-state.mjs'
 export * from './lib/icons.mjs'
