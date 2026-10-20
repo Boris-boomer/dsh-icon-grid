@@ -1,0 +1,88 @@
+{
+  "name": "dsh-icon-grid",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.mjs",
+  "packageManager": "pnpm@9.15.0",
+  "exports": {
+    ".": {
+      "default": "./src/index.mjs"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./config": {
+      "default": "./src/config.mjs"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/index.mjs",
+    "src/config.mjs",
+    "src/lib/icons.mjs",
+    "src/lib/settings.mjs",
+    "src/lib/ui-state.mjs",
+    "lib/client.js",
+    "lib/client.js.map",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18",
+    "dsh": ">=0.2.0-rc.1"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write src test tsdown.config.ts package.json",
+    "format:check": "prettier --check src test tsdown.config.ts package.json",
+    "test": "pnpm test:unit && pnpm test:dom",
+    "test:unit": "node test/config.test.mjs && node test/icons.test.mjs",
+    "test:dom": "tsx test/dom.test.ts",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint && pnpm test"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "dsh-icon-grid"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.5"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.0",
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.0",
+    "@deepseek-ai/schemastery": "^3.18.5",
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^15.0.0",
+    "happy-dom": "^21.0.3",
+    "prettier": "^3.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsdown": "^0.10.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}
