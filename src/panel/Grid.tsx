@@ -13,6 +13,7 @@ import {
 import {
   allEntries, slotsFromOrder, orderFromSlots, reconcileSlots,
   swapSlots, computeOverflow, gridPalette, dropIndex,
+  pluginNameOf, removeFromRegistry, unloadEntry,
 } from '../lib/icons.mjs'
 
 interface Props {
@@ -284,6 +285,48 @@ export const Grid: FC<Props> = ({ ctx, uiState, settingsSvc: settingsProp }) => 
     performSave()
   }
 
+  /**
+   * 统一卸载：宿主 runtime 优先 → __dshIconUnload → entry.onUnload。
+   * 无论卸载是否成功，都从注册表 + 槽位移除，避免 reconcile 把图标填回来。
+   */
+  const handleUnload = useCallback(async (entry: any) => {
+    const name = pluginNameOf(entry)
+    let result: { ok: boolean; via: string; msg: string } = { ok: false, via: 'none', msg: '' }
+
+    // 1) 优先走 host 暴露的 runtime 服务（client.tsx 里 inject 了 'remote'）
+    try {
+      const runtime = (ctx.remote as any)?.dshIconGridRuntime
+      if (runtime?.unload) {
+        const r = await runtime.unload(name)
+        if (r?.ok) result = { ok: true, via: 'host', msg: r.msg ?? '' }
+        else if (typeof r?.msg === 'string') result = { ok: false, via: 'host', msg: r.msg }
+      }
+    } catch (e: any) {
+      result = { ok: false, via: 'host', msg: String(e?.message ?? e) }
+    }
+
+    // 2) 回退到 window.__dshIconUnload / entry.onUnload
+    if (!result.ok) {
+      try {
+        const r = await unloadEntry(entry)
+        if (r.ok) result = r
+        else if (!result.msg) result = r
+      } catch { /* 忽略 */ }
+    }
+
+    // 3) 从注册表 + 槽位移除（这一步保证图标不会在下次 tick 被 reconcileSlots 填回）
+    removeFromRegistry(entry.id)
+    const next = slotsRef.current.map(s => (s === entry.id ? null : s))
+    slotsRef.current = next
+    setSlots(next)
+    performSave({ iconGrid: { order: orderFromSlots(next) } })
+    setMenu(null)
+
+    if (!result.ok && result.msg) {
+      console.warn(`[dsh-icon-grid] 卸载 ${entry.id} 失败: ${result.msg}`)
+    }
+  }, [ctx, performSave])
+
   const visibleSlots = renderCols * renderRows
   const { hiddenCount, showPlusCell, displaySlots } = computeOverflow(slots, visibleSlots)
   const entries2 = entries
@@ -409,17 +452,9 @@ export const Grid: FC<Props> = ({ ctx, uiState, settingsSvc: settingsProp }) => 
             }}>
             打开
           </div>
-          {!menuEntry.builtin && menuEntry.onUnload && (
+          {!menuEntry.builtin && (
             <div style={{ padding: '8px 14px', cursor: 'pointer', color: '#ff6b6b' }}
-              onClick={() => {
-                try { menuEntry.onUnload?.() } finally {
-                  const next = slotsRef.current.map(s => s === menuEntry.id ? null : s)
-                  slotsRef.current = next
-                  setSlots(next)
-                  performSave({ iconGrid: { order: orderFromSlots(next) } })
-                  setMenu(null)
-                }
-              }}>
+              onClick={() => { void handleUnload(menuEntry) }}>
               卸载插件
             </div>
           )}

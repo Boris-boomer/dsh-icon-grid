@@ -63,6 +63,49 @@ export function apply(ctx, config) {
         return `✅ 网格已设为 ${next.iconGrid.cols}×${next.iconGrid.rows}`
       })
 
+    // ---- 统一卸载：探测宿主 registry / loader，把插件本体 dispose 掉 ----
+    // 任一插件无需自带 onUnload；拿不到宿主 API 时返回 { ok: false }，
+    // client 会自动回退到 window.__dshIconUnload / entry.onUnload / 纯从网格移除。
+    async function tryDisposePlugin(name) {
+      const candidates = [
+        ['registry', () => (typeof ctx.get === 'function' ? ctx.get('registry') : null) ?? ctx.registry],
+        ['loader',   () => (typeof ctx.get === 'function' ? ctx.get('loader')   : null) ?? ctx.loader],
+      ]
+      for (const [label, getSvc] of candidates) {
+        let svc
+        try { svc = getSvc() } catch { continue }
+        if (!svc) continue
+        try {
+          if (typeof svc.get === 'function') {
+            const target = svc.get(name)
+            if (target && typeof target.dispose === 'function') {
+              await target.dispose()
+              return { ok: true, msg: `已卸载 ${name}（${label}.get → dispose）` }
+            }
+          }
+          if (typeof svc.delete === 'function') {
+            await svc.delete(name)
+            return { ok: true, msg: `已卸载 ${name}（${label}.delete）` }
+          }
+          if (typeof svc.remove === 'function') {
+            await svc.remove(name)
+            return { ok: true, msg: `已卸载 ${name}（${label}.remove）` }
+          }
+        } catch { /* 尝试下一个候选 */ }
+      }
+      return { ok: false, msg: '宿主未接入 registry/loader，无法卸载插件本体' }
+    }
+
+    ctx.provide?.('dshIconGridRuntime', {
+      unload: async idOrName => tryDisposePlugin(String(idOrName)),
+    })
+
+    command('dsh-icon-grid unload <id>', '从图标网格卸载指定插件')
+      .action(async (_session, id) => {
+        const r = await tryDisposePlugin(String(id))
+        return r.ok ? `✅ ${r.msg}` : `❌ ${r.msg}`
+      })
+
     ctx.provide?.('dsh-icon-grid.config', { get, iconGrid, ui })
   })
 
