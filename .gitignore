@@ -1,6 +1,17 @@
 node_modules
-lib
+lib/*
+!lib/client.js
+!lib/client.js.map
 dist
 *.log
 *.tsbuildinfo
 .DS_Store
+
+# pnpm 调试日志
+.pnpm-debug.log*
+
+# pnpm pack / npm pack 生成的压缩包
+*.tgz
+
+# 编辑器（如果你用 VSCode 但不共享配置）
+.vscode/

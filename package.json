@@ -1,7 +1,6 @@
 {
   "name": "dsh-icon-grid",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "main": "src/index.mjs",
   "packageManager": "pnpm@9.15.0",
@@ -43,6 +42,7 @@
     "test:unit": "node test/config.test.mjs && node test/icons.test.mjs",
     "test:dom": "tsx test/dom.test.ts",
     "build": "tsdown",
+    "prepare": "tsdown",
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm lint && pnpm test"
   },
